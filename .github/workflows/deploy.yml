@@ -1,0 +1,84 @@
+# Builds the site and publishes it to GitHub Pages on every push to main.
+# Needs two repository variables (Settings → Secrets and variables → Actions →
+# Variables): VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY. Both end up
+# in the public page, which is fine for the publishable key: the database rules
+# protect the data. The Supabase secret key must never be used here.
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # also allow a manual run from the Actions tab
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a newer push waits instead of cancelling a running deploy.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      VITE_BACKEND: supabase
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Check the Supabase settings
+        run: |
+          if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "::error::Add the repository variables VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY (Settings → Secrets and variables → Actions → Variables)."
+            exit 1
+          fi
+          # Refuse a secret key: it bypasses every database rule and would be public on the site.
+          is_secret=no
+          case "$VITE_SUPABASE_PUBLISHABLE_KEY" in
+            sb_secret_*) is_secret=yes ;;
+            eyJ*) # legacy JWT key: the service_role one is secret
+              payload=$(printf '%s' "$VITE_SUPABASE_PUBLISHABLE_KEY" | cut -d. -f2 | tr '_-' '/+')
+              case $(( ${#payload} % 4 )) in 2) payload="$payload==" ;; 3) payload="$payload=" ;; esac
+              if printf '%s' "$payload" | base64 -d 2>/dev/null | grep -q '"service_role"'; then is_secret=yes; fi ;;
+          esac
+          if [ "$is_secret" = yes ]; then
+            echo "::error::VITE_SUPABASE_PUBLISHABLE_KEY holds a SECRET key. Delete that variable, rotate the key in Supabase, and use the publishable key (sb_publishable_…)."
+            exit 1
+          fi
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Make sure no secret key ended up in the site
+        run: |
+          if grep -rEq 'sb_secret_[A-Za-z0-9_-]{10,}' dist; then
+            echo "::error::A Supabase secret key was found in the built site. Nothing was published."
+            exit 1
+          fi
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
