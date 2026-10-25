@@ -20,9 +20,9 @@ declare
 begin
   -- Invisible formatting characters: bidi marks, overrides and isolates,
   -- zero-width space/joiners, word joiner and friends, byte order mark.
-  v := regexp_replace(v, '[؜​-‏‪-‮⁠-⁤⁦-⁩﻿]', '', 'g');
+  v := regexp_replace(v, '[\u061C\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]', '', 'g');
   -- Unusual spaces (no-break, en/em/thin..., ideographic) count as plain spaces.
-  v := regexp_replace(v, '[  -   　\t]', ' ', 'g');
+  v := regexp_replace(v, '[\u00A0\u2000-\u200A\u202F\u205F\u3000\t]', ' ', 'g');
   if p_multiline then
     v := replace(replace(v, E'\r\n', E'\n'), E'\r', E'\n');
     v := regexp_replace(v, '[\u0001-\u0009\u000B-\u001F\u007F-\u009F]', '', 'g');

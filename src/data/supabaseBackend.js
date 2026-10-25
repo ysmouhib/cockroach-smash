@@ -6,6 +6,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { BackendError } from './fakeBackend.js';
 import { MESSAGES } from './messages.js';
+import { getCaptchaToken } from './captcha.js';
 
 const FLOOR_LIMIT = 500; // the floor shows at most the newest 150 anyway
 
@@ -76,7 +77,7 @@ async function measureClockOffset(client, samples = 3) {
   return best ? best.offset : 0;
 }
 
-export async function createSupabaseBackend({ url, key }) {
+export async function createSupabaseBackend({ url, key, captchaSiteKey }) {
   const client = createClient(url, key, {
     auth: { persistSession: true, autoRefreshToken: true },
   });
@@ -85,7 +86,16 @@ export async function createSupabaseBackend({ url, key }) {
   const { data: sessionData } = await client.auth.getSession();
   let user = sessionData.session?.user ?? null;
   if (!user) {
-    const { data, error } = await client.auth.signInAnonymously();
+    let captchaToken;
+    if (captchaSiteKey) {
+      try {
+        captchaToken = await getCaptchaToken(captchaSiteKey);
+      } catch {
+        if (isOffline()) throw new BackendError('offline', MESSAGES.offline);
+        throw new BackendError('captcha', "Couldn't check that you're a person. Reload the page to try again.");
+      }
+    }
+    const { data, error } = await client.auth.signInAnonymously(captchaToken ? { options: { captchaToken } } : undefined);
     if (error) {
       if (error.status === PAUSED_STATUS) throw new BackendError('paused', MESSAGES.paused);
       if (isOffline()) throw new BackendError('offline', MESSAGES.offline);

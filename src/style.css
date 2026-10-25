@@ -520,3 +520,12 @@ body { position: fixed; inset: 0; }
 
   .debug { bottom: auto; top: calc(max(16px, env(safe-area-inset-top)) + 64px); }
 }
+
+/* Cloudflare Turnstile box: only visible when Cloudflare asks a person to tick it */
+.captcha {
+  position: fixed;
+  left: 50%;
+  bottom: calc(max(16px, env(safe-area-inset-bottom)) + 64px);
+  z-index: 50;
+  transform: translateX(-50%);
+}

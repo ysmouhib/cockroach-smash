@@ -11,15 +11,17 @@ const base = repo.endsWith('.github.io') ? '/' : `/${repo}/`;
 // Content-Security-Policy as a meta tag: scripts only from this site, network
 // only to this site and the Supabase project. Not in dev (Vite's dev server
 // injects its own scripts).
-function contentSecurityPolicy(supabaseUrl) {
+function contentSecurityPolicy(supabaseUrl, captcha) {
   const connect = ["'self'"];
   if (supabaseUrl) {
     const u = new URL(supabaseUrl);
     connect.push(u.origin, `${u.protocol === 'https:' ? 'wss' : 'ws'}://${u.host}`);
   }
+  const turnstile = captcha ? ' https://challenges.cloudflare.com' : ''; // Cloudflare Turnstile, when used
   const policy = [
     "default-src 'self'",
-    "script-src 'self'",
+    `script-src 'self'${turnstile}`,
+    `frame-src 'self'${turnstile}`,
     "style-src 'self'",
     "img-src 'self' data: blob:",
     `connect-src ${connect.join(' ')}`,
@@ -39,6 +41,6 @@ export default defineConfig(({ command, mode, isPreview }) => {
   const env = { ...loadEnv(mode, process.cwd(), 'VITE_'), ...process.env };
   return {
     base: command === 'build' || isPreview ? base : '/',
-    plugins: [contentSecurityPolicy(env.VITE_SUPABASE_URL)],
+    plugins: [contentSecurityPolicy(env.VITE_SUPABASE_URL, !!env.VITE_TURNSTILE_SITE_KEY)],
   };
 });

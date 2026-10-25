@@ -32,5 +32,5 @@ export async function connectBackend() {
   }
   // Loaded only when needed, so the fake build doesn't ship supabase-js.
   const { createSupabaseBackend } = await import('./supabaseBackend.js');
-  return createSupabaseBackend({ url, key });
+  return createSupabaseBackend({ url, key, captchaSiteKey: env.VITE_TURNSTILE_SITE_KEY });
 }

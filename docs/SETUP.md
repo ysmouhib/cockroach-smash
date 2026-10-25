@@ -110,6 +110,24 @@ was used by mistake.
 The built page also carries a Content-Security-Policy (added in `vite.config.js`):
 scripts only from the site itself, network only to the site and your Supabase project.
 
+## CAPTCHA against bots (Cloudflare Turnstile)
+
+Stops scripts from creating anonymous users in bulk. Real people rarely see it: a
+box appears only when Cloudflare is unsure. **Order matters**: the site must send
+CAPTCHA answers before Supabase starts requiring them, or new visitors are locked out.
+
+1. At [dash.cloudflare.com](https://dash.cloudflare.com) (free account): **Turnstile →
+   Add widget**. Name: `cockroach-smash`. Hostnames: `ysmouhib.github.io` (add
+   `localhost` too for local testing). Widget mode: **Managed**. Create.
+2. It shows a **Site key** (public) and a **Secret key** (private).
+3. GitHub repo variable `VITE_TURNSTILE_SITE_KEY` = the site key. Push or re-run the
+   workflow, and wait until the new site is live.
+4. Only then, in Supabase: **Authentication → Attack Protection → Enable CAPTCHA
+   protection**, provider **Cloudflare Turnstile**, paste the **secret key**, save.
+   The Turnstile secret key goes only there, never in the repo or GitHub.
+
+To switch it off again: disable it in Supabase first, then remove the variable.
+
 ## Good to know
 
 - A free Supabase project **pauses after a week without visitors**. The site then
