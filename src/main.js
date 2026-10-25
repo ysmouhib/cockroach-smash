@@ -15,6 +15,7 @@ import { createReleasePanel } from './ui/releasePanel.js';
 import { createHallOfFame } from './ui/hallOfFame.js';
 import { isDebug, createDebugOverlay } from './ui/debug.js';
 import { createSoundToggle } from './ui/soundToggle.js';
+import { createAboutLink } from './ui/aboutLink.js';
 import { createBanner } from './ui/banner.js';
 import { setUpPhoneViewport } from './ui/viewport.js';
 import { createSound } from './game/sound.js';
@@ -118,6 +119,7 @@ createSoundToggle(ui, {
     savePref('sound', muted ? 'off' : 'on');
   },
 });
+createAboutLink(ui);
 const card = createComplaintCard(ui);
 const finalMessage = createFinalMessage(ui, {
   onSaveName: async (id, name) => {

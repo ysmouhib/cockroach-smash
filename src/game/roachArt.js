@@ -1,4 +1,4 @@
-// Realistic top-down cockroach, adapted from the reference code in PLAN.md.
+// Realistic top-down cockroach, adapted from the reference code in docs/PLAN.md.
 // Art units: about 72 units from cerci to head, facing +x. Antennae are drawn
 // live by roaches.js (they twitch every frame); everything else is cached per
 // gait phase and tint level.

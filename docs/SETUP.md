@@ -4,7 +4,7 @@ Notes for running, deploying and looking after Cockroach Smash. Players never ne
 
 Everything is drawn in code on a canvas. The site is static (GitHub Pages); every
 browser talks directly to [Supabase](https://supabase.com), which keeps the shared
-data, checks every rule on the server and pushes live updates. `PLAN.md` is the full
+data, checks every rule on the server and pushes live updates. `docs/PLAN.md` is the full
 design.
 
 ## Run it locally
@@ -36,8 +36,10 @@ Other commands:
 ## Set up the database (once)
 
 The whole database (tables, security rules, server functions, live updates) is in
-[`supabase/migrations/`](../supabase/migrations/): `001_init.sql`, then
-`002_clean_text.sql` (stricter cleaning of names and complaints).
+[`supabase/migrations/`](../supabase/migrations/), run in order: `001_init.sql`,
+`002_clean_text.sql` (stricter cleaning of names and complaints), `003_hidden_text.sql`
+(removes hidden "smuggled" text and cleans what is already stored),
+`004_more_hidden_text.sql` (closes the gaps the tests found in 003).
 
 1. At [supabase.com/dashboard](https://supabase.com/dashboard), click **New project**.
    Choose a name, generate a database password and keep it, pick a region near your
@@ -47,7 +49,8 @@ The whole database (tables, security rules, server functions, live updates) is i
 3. **SQL Editor → New query**: paste the whole of `supabase/migrations/001_init.sql`
    and click **Run**. If it warns about destructive statements (the `revoke` lines),
    confirm. It should end with "Success. No rows returned". Then do the same with
-   `002_clean_text.sql`. (Already ran 001 earlier? Just run 002.)
+   `002`, `003` and `004`, each in a new query. (Already ran some earlier? Just run
+   the ones after them, in order.)
 4. **Database → Publications → supabase_realtime**: check that **roaches** is on, and
    no other table.
 5. Copy two values:
@@ -138,13 +141,35 @@ To switch it off again: disable it in Supabase first, then remove the variable.
 - Complaints go public as typed (length limit only). To remove one, delete its row
   from the `roaches` table in the Supabase **Table Editor**.
 
+## Tests
+
+| Command | What it does |
+| --- | --- |
+| `npm test` | Everything below on a local Postgres (PGlite): invisible-text attacks, access rules, game rules, fake backend |
+| `npm run scan` | Fails if any file in the repo contains hidden characters |
+| `npm run test:live` | The attacks against the deployed site (public key only; cleans up after itself) |
+| `npm run simulate` | The 10-smasher rule check against the real project (needs the secret key, see above) |
+
+The race tests (calls at the same instant) need a real PostgreSQL server: set
+`DATABASE_URL=postgres://user:password@host:5432/postgres` and run `npm test`. They
+create and drop their own throwaway database. Without `DATABASE_URL` they are skipped.
+
+On GitHub, the deploy workflow runs `scan` and `test` (with a PostgreSQL 17 service
+for the race tests) before building; a failure stops the deploy.
+
+To test a new trick: add a payload to `tests/payloads.js` (built from code points,
+never raw characters), run `npm test`, watch it fail, add the next numbered migration,
+run it in the Supabase SQL Editor, then `npm run test:live`. Details:
+[SECURITY-TESTS.md](SECURITY-TESTS.md).
+
 ## Project layout
 
 | Path | What is in it |
 | --- | --- |
 | `src/game/` | Canvas, floor, cockroaches and their movement, sandals, effects, sound |
-| `src/ui/` | Buttons, panels, dialogs, messages |
-| `src/data/` | Backend access: Supabase, the fake backend, browser preferences |
-| `supabase/migrations/` | The database |
-| `scripts/` | `simulate-smashers.js`, the rule check against a real project |
-| `PLAN.md` | The full design; `CLAUDE.md` sums up the rules for Claude Code |
+| `src/ui/` | Buttons, panels, dialogs, messages, the About link |
+| `src/data/` | Backend access: Supabase, the fake backend, CAPTCHA, browser preferences |
+| `supabase/migrations/` | The database, numbered; run in order |
+| `tests/` | `npm test`: payloads, database and rule tests, race tests |
+| `scripts/` | `test-invisible-prompts.js` (live attack), `scan-hidden-chars.js`, `simulate-smashers.js` |
+| `docs/` | `SECURITY-TESTS.md`, this file, `PLAN.md` (the original game design) |

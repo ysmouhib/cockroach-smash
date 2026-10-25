@@ -22,7 +22,37 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Security and rule tests. The site is only built and published if they pass.
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres: # a real PostgreSQL, for the "calls at the same instant" tests
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: No hidden characters in the repo (Trojan Source check)
+        run: npm run scan
+
+      - name: Database rules, invisible-text attacks, fake backend, race conditions
+        run: npm test
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     env:
       VITE_BACKEND: supabase
