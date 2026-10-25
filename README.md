@@ -59,7 +59,8 @@ Payloads, method and results: [docs/SECURITY-TESTS.md](docs/SECURITY-TESTS.md).
 
 **Limits:** visible prompt injection ("ignore your instructions" in plain words) cannot
 be filtered, only refused by the reader; look-alike letters from other alphabets are
-not changed. Details in the test document.
+not changed; joiners that Persian or Hindi need inside words are removed too. Details
+in the test document.
 
 ## More
 

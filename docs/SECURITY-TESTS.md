@@ -77,7 +77,7 @@ It needs no secret key. It leaves one anonymous user and a few rows marked
 | Local, migrations 001-003 | 2026-10-25 | 18 of 22 hidden-text tests passed: bit smuggling, interlinear annotation markers, musical formatting characters and noncharacters got through |
 | Local, migrations 001-004 | 2026-10-25 | 22 of 22 hidden-text tests, 39 of 39 overall, plus 3 of 3 race tests on PostgreSQL 18 |
 | Live site, migrations 001-003 | 2026-10-25 | 25 of 29: the same four gaps, everything else held |
-| Live site, migrations 001-004 | pending | to be run once 004 is applied in Supabase |
+| Live site, migrations 001-004 | 2026-10-25 | 29 of 29: every attack blocked or cleaned, access control held |
 
 Each gap found by the tests was closed by a migration, and the test stays in the
 suite so it cannot come back:
@@ -95,6 +95,10 @@ suite so it cannot come back:
   treat stored text as data, never as instructions (the rule in `CLAUDE.md`).
 - **Look-alike letters** (Cyrillic "a" in a Latin name, for example) are visible
   characters and are not changed.
+- **Some languages lose characters they need.** Persian, Urdu and Indic scripts such as
+  Hindi use the zero-width non-joiner and joiner inside words; the filter removes them
+  (the joiner is only kept before emoji), which can change how those words render.
+  Acceptable for an English-language game, a real false positive elsewhere.
 - **One bit per emoji.** VS15/VS16 must stay after emoji and symbols, so a message
   could hide one bit per emoji. Hiding a single sentence would take hundreds of emoji
   in a 280-character complaint, which does not fit.
